@@ -3,6 +3,20 @@
 #include "types.h"
 
 typedef struct {
+    int steps;
+    double ** butcher_a;
+    double * butcher_b;
+    double * butcher_c;
+    double * butcher_e;
+} ExplicitMethod;
+
+typedef enum {
+    SOLVER_METHOD_EXPLICIT_EULER,
+    SOLVER_METHOD_RK4,
+    SOLVER_METHOD_DORMAND_PRINCE
+} SolverMethod;
+
+typedef struct {
     Plant * p_plant;
     Vector * scratchpad;
 } Solver;
@@ -20,5 +34,17 @@ void solver_step(
     const Vector * p_u
 );
 
+
+#endif
+
+#ifndef INTEGRATOR_H
+#define INTEGRATOR_H
+
+typedef struct {
+    Plant * p_plant;
+    Vector * scratchpad;
+} Integrator;
+
+Integrator integrator_new(Plant * p_plant);
 
 #endif
