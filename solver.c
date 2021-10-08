@@ -70,7 +70,8 @@ static void method_set_a(IntegratorMethod * p_method, ...){
     int steps = p_method->steps;
     int size_a = (steps * steps - steps) / 2 + 1;
 
-    for(int i = 0; i < size_a; i++){
+    p_method->butcher_a[0] = 0.0;
+    for(int i = 1; i < size_a; i++){
         p_method->butcher_a[i] = va_arg(ap, double);
     }
 
@@ -114,13 +115,12 @@ static void method_unset_e(IntegratorMethod * p_method){
     p_method->butcher_e = NULL;
 }
 
-static IntegratorMethod method_rk4(){
+static IntegratorMethod method_new_rk4(){
     IntegratorMethod method;
 
     method_allocate_space(&method, 4);
     method_set_a(
         &method,
-        0.0,
         1.0/2,
         0.0, 1.0/2,
         0.0, 0.0, 1.0
