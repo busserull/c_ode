@@ -2,14 +2,6 @@
 #define SOLVER_H
 #include "types.h"
 
-typedef struct {
-    int steps;
-    double ** butcher_a;
-    double * butcher_b;
-    double * butcher_c;
-    double * butcher_e;
-} ExplicitMethod;
-
 typedef enum {
     SOLVER_METHOD_EXPLICIT_EULER,
     SOLVER_METHOD_RK4,
@@ -19,6 +11,7 @@ typedef enum {
 typedef struct {
     Plant * p_plant;
     Vector * scratchpad;
+    void * p_method;
 } Solver;
 
 Solver solver_new(Plant * p_plant);
