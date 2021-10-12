@@ -1,5 +1,5 @@
-/* #include "integrator.h" */
-#include "solver.h"
+#include "integrator.h"
+/* #include "solver.h" */
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -24,15 +24,7 @@ static void sum_x_k(
     }
 }
 
-typedef struct {
-    int steps;
-    double * butcher_a;
-    double * butcher_b;
-    double * butcher_c;
-    double * butcher_e;
-} IntegratorMethod;
-
-static void method_allocate_space(IntegratorMethod * p_method, int steps){
+static void table_allocate_space(IntegratorTable * p_table, int steps){
     /* Space requirements (n = steps) */
     /* a: n * (n - 1) / 2 */
     /* b: n */
@@ -44,99 +36,121 @@ static void method_allocate_space(IntegratorMethod * p_method, int steps){
     int size_total = size_a + 3 * steps;
     double * p_base = (double *)malloc(size_total * sizeof(double));
 
-    p_method->butcher_a = p_base;
-    p_method->butcher_b = p_base + size_a + 1;
-    p_method->butcher_c = p_base + size_a + steps + 1;
-    p_method->butcher_e = p_base + size_a + 2 * steps + 1;
+    p_table->butcher_a = p_base;
+    p_table->butcher_b = p_base + size_a + 1;
+    p_table->butcher_c = p_base + size_a + steps + 1;
+    p_table->butcher_e = p_base + size_a + 2 * steps + 1;
 
-    p_method->steps = steps;
+    p_table->steps = steps;
 }
 
-static void method_free_space(IntegratorMethod * p_method){
-    free(p_method->butcher_a);
+static void table_free_space(IntegratorTable * p_table){
+    free(p_table->butcher_a);
 
-    p_method->butcher_a = NULL;
-    p_method->butcher_b = NULL;
-    p_method->butcher_c = NULL;
-    p_method->butcher_e = NULL;
+    p_table->butcher_a = NULL;
+    p_table->butcher_b = NULL;
+    p_table->butcher_c = NULL;
+    p_table->butcher_e = NULL;
 
-    p_method->steps = 0;
+    p_table->steps = 0;
 }
 
-static void method_set_a(IntegratorMethod * p_method, ...){
+static void table_set_a(IntegratorTable * p_table, ...){
     va_list ap;
-    va_start(ap, p_method);
+    va_start(ap, p_table);
 
-    int steps = p_method->steps;
+    int steps = p_table->steps;
     int size_a = (steps * steps - steps) / 2 + 1;
 
-    p_method->butcher_a[0] = 0.0;
+    p_table->butcher_a[0] = 0.0;
     for(int i = 1; i < size_a; i++){
-        p_method->butcher_a[i] = va_arg(ap, double);
+        p_table->butcher_a[i] = va_arg(ap, double);
     }
 
     va_end(ap);
 }
 
-static void method_set_b(IntegratorMethod * p_method, ...){
+static void table_set_b(IntegratorTable * p_table, ...){
     va_list ap;
-    va_start(ap, p_method);
+    va_start(ap, p_table);
 
-    for(int i = 0; i < p_method->steps; i++){
-        p_method->butcher_b[i] = va_arg(ap, double);
+    for(int i = 0; i < p_table->steps; i++){
+        p_table->butcher_b[i] = va_arg(ap, double);
     }
 
     va_end(ap);
 }
 
-static void method_set_c(IntegratorMethod * p_method, ...){
+static void table_set_c(IntegratorTable * p_table, ...){
     va_list ap;
-    va_start(ap, p_method);
+    va_start(ap, p_table);
 
-    for(int i = 0; i < p_method->steps; i++){
-        p_method->butcher_c[i] = va_arg(ap, double);
+    for(int i = 0; i < p_table->steps; i++){
+        p_table->butcher_c[i] = va_arg(ap, double);
     }
 
     va_end(ap);
 }
 
-static void method_set_e(IntegratorMethod * p_method, ...){
+static void table_set_e(IntegratorTable * p_table, ...){
     va_list ap;
-    va_start(ap, p_method);
+    va_start(ap, p_table);
 
-    for(int i = 0; i < p_method->steps; i++){
-        p_method->butcher_e[i] = va_arg(ap, double);
+    for(int i = 0; i < p_table->steps; i++){
+        p_table->butcher_e[i] = va_arg(ap, double);
     }
 
     va_end(ap);
 }
 
-static void method_unset_e(IntegratorMethod * p_method){
-    p_method->butcher_e = NULL;
+static void table_unset_e(IntegratorTable * p_table){
+    p_table->butcher_e = NULL;
 }
 
-static IntegratorMethod method_new_rk4(){
-    IntegratorMethod method;
+static IntegratorTable table_new_rk4(){
+    IntegratorTable table;
 
-    method_allocate_space(&method, 4);
-    method_set_a(
-        &method,
+    table_allocate_space(&table, 4);
+    table_set_a(
+        &table,
         1.0/2,
         0.0, 1.0/2,
         0.0, 0.0, 1.0
     );
-    method_set_b(&method, 1.0/6, 1.0/3, 1.0/3, 1.0/6);
-    method_set_c(&method, 0.0, 1.0/2, 1.0/2, 1.0);
-    method_unset_e(&method);
+    table_set_b(&table, 1.0/6, 1.0/3, 1.0/3, 1.0/6);
+    table_set_c(&table, 0.0, 1.0/2, 1.0/2, 1.0);
+    table_unset_e(&table);
 
-    return method;
+    return table;
 }
 
-Integrator integrator_new(Plant * p_plant){
+Integrator integrator_new(Plant * p_plant, IntegratorMethod method){
     Integrator s;
+
+    switch(method){
+        case INTEGRATOR_PARAMETERS_EXPLICIT_EULER:
+            break;
+
+        case INTEGRATOR_PARAMETERS_RK4:
+            s.table = table_new_rk4();
+            break;
+
+        case INTEGRATOR_PARAMETERS_DORMAND_PRINCE:
+            break;
+
+        default:
+            break;
+    }
 
     return s;
 }
+
+void integrator_delete(Integrator * p_integrator){
+    table_free_space(&(p_integrator->table));
+}
+
+
+
 
 Solver solver_new(Plant * p_plant){
     Solver s;
