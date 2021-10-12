@@ -1,5 +1,4 @@
 #include "integrator.h"
-/* #include "solver.h" */
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -124,106 +123,132 @@ static IntegratorTable table_new_rk4(){
     return table;
 }
 
+
+static Vector * scratchpad_new(int plant_dimension, int integrator_steps){
+    Vector * s = (Vector *)malloc((integrator_steps + 1) * sizeof(Vector));
+
+    for(int i = 0; i < integrator_steps + 1; i++){
+        s[i].data = malloc(plant_dimension * sizeof(double));
+        s[i].dim = plant_dimension;
+    }
+
+    return s;
+}
+
+static void scratchpad_delete(Vector * scratchpad, int integrator_steps){
+    for(int i = 0; i < integrator_steps + 1; i++){
+        free(scratchpad[i].data);
+        scratchpad[i].dim = 0;
+    }
+
+    free(scratchpad);
+}
+
+
 Integrator integrator_new(Plant * p_plant, IntegratorMethod method){
     Integrator s;
+    s.p_plant = p_plant;
 
     switch(method){
-        case INTEGRATOR_PARAMETERS_EXPLICIT_EULER:
+        case INTEGRATOR_METHOD_EXPLICIT_EULER:
             break;
 
-        case INTEGRATOR_PARAMETERS_RK4:
+        case INTEGRATOR_METHOD_RK4:
             s.table = table_new_rk4();
             break;
 
-        case INTEGRATOR_PARAMETERS_DORMAND_PRINCE:
+        case INTEGRATOR_METHOD_DORMAND_PRINCE:
             break;
 
         default:
             break;
     }
 
+    s.scratchpad = scratchpad_new(p_plant->dim, s.table.steps);
+
     return s;
 }
 
 void integrator_delete(Integrator * p_integrator){
+    scratchpad_delete(p_integrator->scratchpad, p_integrator->table.steps);
     table_free_space(&(p_integrator->table));
 }
 
 
 
 
-Solver solver_new(Plant * p_plant){
-    Solver s;
+/* Solver solver_new(Plant * p_plant){ */
+/*     Solver s; */
 
-    s.p_plant = p_plant;
-    s.scratchpad = (Vector *)malloc(8 * sizeof(Vector));
+/*     s.p_plant = p_plant; */
+/*     s.scratchpad = (Vector *)malloc(8 * sizeof(Vector)); */
 
-    for(int i = 0; i < p_plant->dim + 1; i++){
-        s.scratchpad[i].dim = p_plant->dim;
-        s.scratchpad[i].data = malloc(p_plant->dim * sizeof(double));
-    }
+/*     for(int i = 0; i < p_plant->dim + 1; i++){ */
+/*         s.scratchpad[i].dim = p_plant->dim; */
+/*         s.scratchpad[i].data = malloc(p_plant->dim * sizeof(double)); */
+/*     } */
 
-    return s;
-}
+/*     return s; */
+/* } */
 
-void solver_delete(Solver * p_solver){
-    for(int i = 0; i < p_solver->p_plant->dim + 1; i++){
-        free(p_solver->scratchpad[i].data);
-        p_solver->scratchpad[i].dim = 0;
-    }
+/* void solver_delete(Solver * p_solver){ */
+/*     for(int i = 0; i < p_solver->p_plant->dim + 1; i++){ */
+/*         free(p_solver->scratchpad[i].data); */
+/*         p_solver->scratchpad[i].dim = 0; */
+/*     } */
 
-    free(p_solver->scratchpad);
-    p_solver->scratchpad = NULL;
-}
+/*     free(p_solver->scratchpad); */
+/*     p_solver->scratchpad = NULL; */
+/* } */
 
-void solver_step(
-    Solver * p_solver,
-    Vector * p_xout,
-    double t,
-    double dt,
-    const Vector * p_x,
-    const Vector * p_u
-){
-    static const double butcher_a[7][6] = {
-        {0.0},
-        {1.0/5},
-        {3.0/40, 9.0/40},
-        {44.0/45, -56.0/15, 32.0/9},
-        {19372.0/6561, -25360.0/2187, 64448.0/6561, -212.0/729},
-        {9017.0/3168, -355.0/33, 46732.0/5247, 49.0/176, -5103.0/18656},
-        {35.0/384, 0.0, 500.0/1113, 125.0/192, -2187.0/6784, 11.0/84}
-    };
+/* void solver_step( */
+/*     Solver * p_solver, */
+/*     Vector * p_xout, */
+/*     double t, */
+/*     double dt, */
+/*     const Vector * p_x, */
+/*     const Vector * p_u */
+/* ){ */
+/*     static const double butcher_a[7][6] = { */
+/*         {0.0}, */
+/*         {1.0/5}, */
+/*         {3.0/40, 9.0/40}, */
+/*         {44.0/45, -56.0/15, 32.0/9}, */
+/*         {19372.0/6561, -25360.0/2187, 64448.0/6561, -212.0/729}, */
+/*         {9017.0/3168, -355.0/33, 46732.0/5247, 49.0/176, -5103.0/18656}, */
+/*         {35.0/384, 0.0, 500.0/1113, 125.0/192, -2187.0/6784, 11.0/84} */
+/*     }; */
 
-    static const double butcher_b[7] = {
-        35.0/384, 0.0, 500.0/1113, 125.0/192, -2187.0/6784, 11.0/84, 0.0
-    };
+/*     static const double butcher_b[7] = { */
+/*         35.0/384, 0.0, 500.0/1113, 125.0/192, -2187.0/6784, 11.0/84, 0.0 */
+/*     }; */
 
-    static const double butcher_c[7] = {
-        0.0, 1.0/5, 3.0/10, 4.0/5, 8.0/9, 1.0, 1.0
-    };
+/*     static const double butcher_c[7] = { */
+/*         0.0, 1.0/5, 3.0/10, 4.0/5, 8.0/9, 1.0, 1.0 */
+/*     }; */
 
-    int plant_dim = p_solver->p_plant->dim;
-    PlantEq f = p_solver->p_plant->xdot;
+/*     int plant_dim = p_solver->p_plant->dim; */
+/*     PlantEq f = p_solver->p_plant->xdot; */
 
-    Vector * p_xtemp = p_solver->scratchpad;
-    Vector * k = p_solver->scratchpad + 1;
+/*     Vector * p_xtemp = p_solver->scratchpad; */
+/*     Vector * k = p_solver->scratchpad + 1; */
 
-    for(int i = 0; i < 7; i++){
-        sum_x_k(p_xtemp, p_x, k, butcher_a[i], i);
+/*     for(int i = 0; i < 7; i++){ */
+/*         sum_x_k(p_xtemp, p_x, k, butcher_a[i], i); */
 
-        f(
-            k + i,
-            t + dt * butcher_c[i],
-            p_xtemp,
-            p_u
-        );
-    }
+/*         f( */
+/*             k + i, */
+/*             t + dt * butcher_c[i], */
+/*             p_xtemp, */
+/*             p_u */
+/*         ); */
+/*     } */
 
-    for(int dim = 0; dim < plant_dim; dim++){
-        p_xtemp->data[dim] = 0.0;
+/*     for(int dim = 0; dim < plant_dim; dim++){ */
+/*         p_xtemp->data[dim] = 0.0; */
 
-        for(int i = 0; i < 7; i++){
-            p_xtemp->data
-        }
-    }
-}
+/*         for(int i = 0; i < 7; i++){ */
+/*             p_xtemp->data */
+/*         } */
+/*     } */
+/* } */
