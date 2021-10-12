@@ -2,24 +2,23 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-/* static scalar_product(Vector * out, ){ */
-
-/* } */
-static void sum_x_k(
+static void weighted_sum(
     Vector * p_out,
+    double time_scale,
     const Vector * p_x,
+    const Vector * p_ab,
     const Vector * p_k,
-    const double * a,
     int number_of_ks
 ){
-    for(int i = 0; i < p_x->dim; i++){
-        p_out->data[i] = p_x->data[i];
-    }
+    for(int dim = 0; dim < p_x->dim; dim++){
+        p_out->data[dim] = 0.0;
 
-    for(int k = 0; k < number_of_ks; k++){
-        for(int i = 0; i < p_x->dim; i++){
-            p_out->data[i] += a[i] * p_k[k].data[i];
+        for(int i = 0; i < number_of_ks; i++){
+            p_out->data[dim] += p_ab->data[i] * p_k->data[i];
         }
+        p_out->data[dim] *= time_scale;
+
+        p_out->data[dim] += p_x->data[dim];
     }
 }
 
