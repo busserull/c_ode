@@ -6,7 +6,7 @@ static void weighted_sum(
     Vector * p_out,
     double time_scale,
     const Vector * p_x,
-    const Vector * p_ab,
+    const double * p_ab,
     const Vector * p_k,
     int number_of_ks
 ){
@@ -14,13 +14,14 @@ static void weighted_sum(
         p_out->data[dim] = 0.0;
 
         for(int i = 0; i < number_of_ks; i++){
-            p_out->data[dim] += p_ab->data[i] * p_k->data[i];
+            p_out->data[dim] += p_ab[i] * p_k->data[i];
         }
         p_out->data[dim] *= time_scale;
 
         p_out->data[dim] += p_x->data[dim];
     }
 }
+
 
 static void table_allocate_space(IntegratorTable * p_table, int steps){
     /* Space requirements (n = steps) */
@@ -166,6 +167,53 @@ Integrator integrator_new(Plant * p_plant, IntegratorMethod method){
     s.scratchpad = scratchpad_new(p_plant->dim, s.table.steps);
 
     return s;
+}
+
+void integrator_step(
+    Integrator * p_integrator,
+    Vector * p_xout,
+    double step_size,
+    double t,
+    const Vector * p_x,
+    const Vector * p_u
+){
+    Vector * p_xtemp = p_integrator->scratchpad;
+    Vector * p_k = p_integrator->scratchpad + 1;
+
+    int a_offset = 0;
+    for(int i = 0; i < p_integrator->table.steps; i++){
+        weighted_sum(
+            p_xtemp,
+            step_size,
+            p_x,
+            p_integrator->table.butcher_a + a_offset + 1,
+            p_k,
+            i
+        );
+
+        p_integrator->p_plant->xdot(
+            p_integrator->p_plant->p_params,
+            p_k + i,
+            t + p_integrator->table.butcher_c[i] * step_size,
+            p_xtemp,
+            p_u
+        );
+
+        a_offset += i;
+    }
+
+    weighted_sum(
+        p_xtemp,
+        step_size,
+        p_x,
+        p_integrator->table.butcher_b,
+        p_k,
+        p_integrator->table.steps - 1
+    );
+
+    for(int i = 0; i < p_x->dim; i++){
+        p_xout->data[i] = p_x->data[i];
+    }
 }
 
 void integrator_delete(Integrator * p_integrator){

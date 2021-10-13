@@ -7,6 +7,7 @@ typedef struct {
 } Vector;
 
 typedef void (* PlantEq)(
+    void * p_plant_params,
     Vector * p_xdot,
     double t,
     const Vector * p_x,
