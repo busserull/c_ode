@@ -1,52 +1,48 @@
 #include "types.h"
-#include "integrator.h"
+#include "rkdp.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-void integrator_step(Integrator *, Vector *, double, double, const Vector *, const Vector *);
-
 void mass_damper_spring(
-    void * p_params, 
-    Vector * p_xdot, 
-    double t, 
-    const Vector * p_x, 
-    const Vector * p_u
+    void * p_plant_params,
+    Vector x_dot,
+    double t,
+    const Vector x,
+    const Vector u
 ){
-    p_xdot->data[0] = p_x->data[1];
-    p_xdot->data[1] = -1 * p_x->data[0] - 0.1 * p_x->data[1];
+    double m = ((double *)p_plant_params)[0];
+    double d = ((double *)p_plant_params)[1];
+    double k = ((double *)p_plant_params)[2];
+
+    x_dot[0] = x[1];
+    x_dot[1] = (-k * x[0] - d * x[1] + u[1]) / m;
 }
 
-/* void mass_damper_spring(Vector * p_xdot, const Vector * p_x){ */
 
-/* } */
 
 int main(){
     Plant mds;
-    mds.dim = 2;
-    mds.p_params = NULL;
-    mds.xdot = mass_damper_spring;
+    double mds_params[3] = {1.0, 0.1, 1.0};
+    mds.p_plant_params = (void *)mds_params;
+    mds.plant_function = mass_damper_spring;
 
-    Integrator s = integrator_new(&mds, INTEGRATOR_METHOD_RK4);
+    void * p_rkdp_wa = rkdp_working_area_new(2);
 
-    Vector x;
-    x.dim = 2;
-    x.data = (double *)malloc(2 * sizeof(double));
-    x.data[0] = 1.0;
-    x.data[1] = 0.0;
+    double x[2] = {1.0, 0.0};
+    double u[2] = {0.0, 0.0};
 
-    double t = 0;
+    double t = 0.0;
     double h = 0.1;
 
-    while(t < 2.0){
-        printf("%f\n", x.data[0]);
-        integrator_step(&s, &x, h, t, &x, NULL);
+    printf("x = [");
+    while(t < 30.0){
+        printf("%f,...\n", x[0]);
+        rkdp_step(p_rkdp_wa, &mds, x, NULL, t, x, u, h);
         t += h;
     }
+    printf("]; plot(x);\n");
 
-    free(x.data);
-
-    integrator_delete(&s);
-
+    rkdp_working_area_delete(p_rkdp_wa);
     return 0;
 }

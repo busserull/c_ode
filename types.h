@@ -1,23 +1,19 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-typedef struct {
-    int dim;
-    double * data;
-} Vector;
+typedef double * Vector;
 
-typedef void (* PlantEq)(
+typedef void (* PlantFunction)(
     void * p_plant_params,
-    Vector * p_xdot,
+    Vector x_dot,
     double t,
-    const Vector * p_x,
-    const Vector * p_u
+    const Vector x,
+    const Vector u
 );
 
 typedef struct {
-    int dim;
-    void * p_params;
-    PlantEq xdot;
+    void * p_plant_params;
+    PlantFunction plant_function;
 } Plant;
 
 #endif
