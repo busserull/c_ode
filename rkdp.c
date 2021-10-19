@@ -27,13 +27,18 @@ static void vector_add(Vector v, int dim, const Vector x){
     }
 }
 
+typedef union {
+    int as_int;
+    double as_double;
+} WAPoint;
 
 void * rkdp_working_area_new(int plant_dimension){
-    int dim_size = sizeof(int);
-    int xtemp_size = plant_dimension * sizeof(double);
-    int k_size = RKDP_STEPS * plant_dimension * sizeof(double);
+    int dim_size = 1;
+    int xtemp_size = plant_dimension;
+    int k_size = RKDP_STEPS * plant_dimension;
 
-    void * p_wk = malloc(dim_size + xtemp_size + k_size);
+    int size = (dim_size + xtemp_size + k_size) * sizeof(WAPoint);
+    void * p_wk = malloc(size);
 
     int * p_dim = (int *)p_wk;
     *p_dim = plant_dimension;
@@ -55,11 +60,11 @@ void rkdp_step(
     const Vector u,
     double step_size
 ){
-    int * p_int_wa = (int *)(p_working_area);
+    WAPoint * p_wa = (WAPoint *)p_working_area;
 
-    int dim = *p_int_wa;
+    int dim = (*p_wa).as_int;
 
-    double * x_temp = (double *)(p_int_wa + 1);
+    double * x_temp = (double *)(p_wa + 1);
     double * k0 = x_temp + dim;
     double * k1 = x_temp + 2 * dim;
     double * k2 = x_temp + 3 * dim;
