@@ -1,5 +1,4 @@
 #include "rkdp.h"
-#include <stdlib.h>
 
 static void vector_null(Vector v, int dim){
     for(int i = 0; i < dim; i++){
@@ -26,7 +25,7 @@ static void vector_add(Vector v, int dim, const Vector x){
 }
 
 void rkdp_step(
-    double * p_working_area,
+    RKDP_WA * p_working_area,
     Plant * p_plant,
     Vector x_out,
     Vector e_out,
@@ -35,9 +34,9 @@ void rkdp_step(
     const Vector u,
     double step_size
 ){
-    int dim = *((int *)p_working_area);
+    int dim = p_working_area[0].as_int;
 
-    double * x_temp = p_working_area + 1;
+    double * x_temp = (double *)p_working_area + 1;
     double * k0 = x_temp + dim;
     double * k1 = x_temp + 2 * dim;
     double * k2 = x_temp + 3 * dim;

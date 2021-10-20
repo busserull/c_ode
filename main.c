@@ -2,7 +2,6 @@
 #include "rkdp.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 
 void mass_damper_spring(
     double * p_plant_params,
@@ -22,7 +21,7 @@ void mass_damper_spring(
 
 
 int main(){
-    RKDP_WA(p_rkdp_wa, 2);
+    RKDP_WA_NEW(p_rkdp_wa, 2);
 
     Plant mds;
     double mds_params[3] = {1.0, 0.1, 1.0};
