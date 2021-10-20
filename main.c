@@ -5,15 +5,15 @@
 #include <stdlib.h>
 
 void mass_damper_spring(
-    void * p_plant_params,
+    double * p_plant_params,
     Vector x_dot,
     double t,
     const Vector x,
     const Vector u
 ){
-    double m = ((double *)p_plant_params)[0];
-    double d = ((double *)p_plant_params)[1];
-    double k = ((double *)p_plant_params)[2];
+    double m = p_plant_params[0];
+    double d = p_plant_params[1];
+    double k = p_plant_params[2];
 
     x_dot[0] = x[1];
     x_dot[1] = (-k * x[0] - d * x[1] + u[1]) / m;
@@ -22,12 +22,12 @@ void mass_damper_spring(
 
 
 int main(){
+    RKDP_WA(p_rkdp_wa, 2);
+
     Plant mds;
     double mds_params[3] = {1.0, 0.1, 1.0};
-    mds.p_plant_params = (void *)mds_params;
+    mds.p_plant_params = mds_params;
     mds.plant_function = mass_damper_spring;
-
-    void * p_rkdp_wa = rkdp_working_area_new(2);
 
     double x[2] = {1.0, 0.0};
     double u[2] = {0.0, 0.0};
@@ -43,6 +43,5 @@ int main(){
     }
     printf("]; plot(x);\n");
 
-    rkdp_working_area_delete(p_rkdp_wa);
     return 0;
 }

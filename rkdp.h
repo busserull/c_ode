@@ -2,12 +2,12 @@
 #define RKDP_H
 #include "types.h"
 
-void * rkdp_working_area_new(int plant_dimension);
-
-void rkdp_working_area_delete(void * p_working_area);
+#define RKDP_WA(name, plant_dim) \
+    double (name)[1 + 8 * (plant_dim)]; \
+    *((int *)(name)) = (plant_dim)
 
 void rkdp_step(
-    void * p_rkdp_working_area,
+    double * p_rkdp_working_area,
     Plant * p_plant,
     Vector x_out,
     Vector e_out,

@@ -1,8 +1,6 @@
 #include "rkdp.h"
 #include <stdlib.h>
 
-#define RKDP_STEPS 7
-
 static void vector_null(Vector v, int dim){
     for(int i = 0; i < dim; i++){
         v[i] = 0.0;
@@ -27,31 +25,8 @@ static void vector_add(Vector v, int dim, const Vector x){
     }
 }
 
-typedef union {
-    int as_int;
-    double as_double;
-} WAPoint;
-
-void * rkdp_working_area_new(int plant_dimension){
-    int dim_size = 1;
-    int xtemp_size = plant_dimension;
-    int k_size = RKDP_STEPS * plant_dimension;
-
-    int size = (dim_size + xtemp_size + k_size) * sizeof(WAPoint);
-    void * p_wk = malloc(size);
-
-    int * p_dim = (int *)p_wk;
-    *p_dim = plant_dimension;
-
-    return p_wk;
-}
-
-void rkdp_working_area_delete(void * p_working_area){
-    free(p_working_area);
-}
-
 void rkdp_step(
-    void * p_working_area,
+    double * p_working_area,
     Plant * p_plant,
     Vector x_out,
     Vector e_out,
@@ -60,11 +35,9 @@ void rkdp_step(
     const Vector u,
     double step_size
 ){
-    WAPoint * p_wa = (WAPoint *)p_working_area;
+    int dim = *((int *)p_working_area);
 
-    int dim = (*p_wa).as_int;
-
-    double * x_temp = (double *)(p_wa + 1);
+    double * x_temp = p_working_area + 1;
     double * k0 = x_temp + dim;
     double * k1 = x_temp + 2 * dim;
     double * k2 = x_temp + 3 * dim;

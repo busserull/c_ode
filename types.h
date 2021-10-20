@@ -4,7 +4,7 @@
 typedef double * Vector;
 
 typedef void (* PlantFunction)(
-    void * p_plant_params,
+    double * p_plant_params,
     Vector x_dot,
     double t,
     const Vector x,
@@ -12,7 +12,7 @@ typedef void (* PlantFunction)(
 );
 
 typedef struct {
-    void * p_plant_params;
+    double * p_plant_params;
     PlantFunction plant_function;
 } Plant;
 
