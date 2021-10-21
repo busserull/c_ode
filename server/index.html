@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Mass Damper Spring</title>
+    </head>
+    <body>
+        <div id="MassDamperSpring"></div>
+<style>
+body {
+    width: 100%;
+    position: relative;
+}
+
+#MassDamperSpring {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: lightblue;
+    border-radius: 5px;
+    left: calc(50% - 50px);
+}
+</style>
+
+<script>
+    function draw(_timestamp){
+        let mds = document.querySelector("#MassDamperSpring")
+        let x = window.MDS.get_x(0)
+        mds.style.left = `calc(50% + ${x * 50}% - 50px)`
+
+        window.requestAnimationFrame(draw)
+    }
+
+    WebAssembly.instantiateStreaming(fetch("mds.wasm"))
+        .then(obj => window.MDS = obj.instance.exports)
+        .then(fs => window.setInterval(() => fs.step(), 100))
+        .then(_ => window.requestAnimationFrame(draw))
+</script>
+    </body>
+</html>
